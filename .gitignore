@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+src/delfipq/delfi-pq.txt
+
 # C extensions
 *.so
 
@@ -137,3 +139,9 @@ data/
 
 # Visual Studio Code
 .vscode/
+
+# auth tokens
+tokens/
+
+# xml files
+*.xml
