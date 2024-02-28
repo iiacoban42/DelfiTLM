@@ -11,7 +11,7 @@ channels==4.0.0
 charset-normalizer==3.3.2
 constantly==23.10.4
 coverage==7.4.1
-cryptography==42.0.2
+cryptography==42.0.4
 daphne==4.1.0
 Django==4.2.10
 django-bootstrap-v5==1.0.11
@@ -20,6 +20,7 @@ django-filter==23.5
 django-pandas==0.6.6
 django-revproxy==0.12.0
 django-tables2==2.7.0
+django-axes==6.3.0
 djangorestframework==3.14.0
 djangorestframework-api-key==3.0.0
 hyperlink==21.0.0
