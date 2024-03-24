@@ -10,6 +10,9 @@ from pycrowdsec.client import StreamClient
 from skyfield.api import load, EarthSatellite, wgs84, Topos
 from satellite_tle import fetch_tle_from_celestrak
 from transmission.processing.satellites import SATELLITES, TIME_FORMAT
+from transmission.processing.influxdb_api import get_last_received_frame 
+from django_logger import logger
+import traceback
 
 #pylint: disable=W0718
 def get_tle(norad_id: str):
@@ -40,7 +43,10 @@ def get_tle(norad_id: str):
             return tles[norad_id]['tle']
 
     except Exception as _:
-        pass
+        # something went wrong retrieving TLEs
+        # use the old ones, even if outdated
+        logger.error("Error retrieving TLEs\n%s", traceback.format_exc())
+        return tles[norad_id]['tle']
 
     return None
 
@@ -50,7 +56,7 @@ def get_satellite_location_now(norad_id: str) -> dict:
     tle = get_tle(norad_id)
 
     if tle is None:
-        return {"satellite": None, "latitude": None, "longitude": None, "sunlit": None}
+        return {"satellite": None, "norad_id": None, "latitude": None, "longitude": None, "sunlit": None}
 
     time_scale = load.timescale()
     time = time_scale.now()
@@ -67,7 +73,7 @@ def get_satellite_location_now(norad_id: str) -> dict:
     eph = load('de421.bsp')
     sunlit = satellite.at(time).is_sunlit(eph)
 
-    return {"satellite": str(tle[0]), "latitude": lat_deg, "longitude": lon_deg, "sunlit": int(sunlit)}
+    return {"satellite": str(tle[0]), "norad_id": norad_id, "latitude": lat_deg, "longitude": lon_deg, "sunlit": int(sunlit)}
 
 
 def get_next_pass_over_delft(request, norad_id: str):
@@ -114,7 +120,17 @@ def _get_satellites_status():
     sats_status = {}
     for sat, info in SATELLITES.items():
         sats_status[str(sat + "_status")] = info["status"]
+        last_rx_time = get_last_received_frame(sat)
+        if last_rx_time is not None and type(last_rx_time) is datetime:
+            sats_status[str(sat + "_last_data")] = last_rx_time#.strftime('%m %d %Y %H:%M:%S UTC')
+        else:
+            sats_status[str(sat + "_last_data")] = None
 
+        if info["launch"] is not None: 
+            launch_time = datetime.strptime(info["launch"], '%Y-%m-%dT%H:%M:%S.%fZ')#.strftime('%M %d%S %Y')
+            sats_status[str(sat + "_launch")] = launch_time
+        else:
+            sats_status[str(sat + "_launch")] = None
     return sats_status
 
 
@@ -126,9 +142,15 @@ def get_satellites_status(request):
 
 def home(request):
     """Render index.html page"""
-    context = _get_satellites_status()
-    return render(request, "home/index.html", context)
+    #context = _get_satellites_status()
+    context = []
 
+    try:
+        context = _get_satellites_status()
+        return render(request, "home/index.html", context)
+    except Exception as e:
+        logger.error(traceback.format_exc())
+    return render(request, "home/index.html", context)
 
 def ban_view(request):
     """Ban request"""

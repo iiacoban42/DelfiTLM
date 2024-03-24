@@ -50,7 +50,7 @@ def submit_frame(request):  # pylint:disable=R0911
                         api_key_name, number_of_saved_frames)
 
             try:
-                schedule_job("buffer_processing", date=datetime.now() + timedelta(seconds=30))
+                schedule_job("buffer_processing", date=datetime.now())
             except ValidationError as _:
                 pass
 
@@ -182,7 +182,7 @@ def paginate_telemetry_table(request, telemetry_filter, table_name):
     context = {'telemetry_filter': telemetry_filter, 'page_obj': page_obj, 'table_name': table_name}
     return render(request, "transmission/table.html", context)
 
-
+@login_required(login_url='/login')
 def get_frames_table(request, link):
     """Queries and filters the uplink/downlink table"""
 
